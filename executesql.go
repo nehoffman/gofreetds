@@ -141,6 +141,11 @@ func go2SqlDataType(value interface{}) (string, string, error) {
 	case []byte:
 		{
 			b, _ := value.([]byte)
+			if(max(1, len(b)) > 8000) {
+				return "varbinary (MAX)",
+					fmt.Sprintf("0x%x", b), nil
+			}
+
 			return fmt.Sprintf("varbinary (%d)", max(1, len(b))),
 				fmt.Sprintf("0x%x", b), nil
 		}
