@@ -1,6 +1,7 @@
 package freetds
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -80,6 +81,7 @@ func TestGoTo2SqlDataType(t *testing.T) {
 	checker(tm.In(paris), "datetimeoffset", "'"+tm.In(paris).Format(sqlDateTimeOffSet)+"'")
 
 	checker([]byte{1, 2, 3, 4, 5, 6, 7, 8}, "varbinary (8)", "0x0102030405060708")
+	checker(make([]byte, 8001), "varbinary (MAX)", "0x" + strings.Repeat("00", 8001))
 
 	checker("", "nvarchar (1)", "''")
 	checker(true, "bit", "1")
