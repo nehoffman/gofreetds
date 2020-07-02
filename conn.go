@@ -166,6 +166,12 @@ func (conn *Conn) connect() (*Conn, error) {
 		conn.close()
 		return nil, err
 	}
+
+	var sql_runtime_err = conn.readMSSQLVersion()
+	if sql_runtime_err != nil {
+		return nil, err
+	}
+
 	//log.Printf("freetds connected to %s@%s.%s", conn.user, conn.host, conn.database)
 	return conn, nil
 }
@@ -236,14 +242,6 @@ func (conn *Conn) getDbProc() (*C.DBPROCESS, error) {
 		return nil, dbProcError("dbopen error")
 	}
 	conn.readFreeTdsVersion()
-
-	//Calling asynchronously to work around the DbProcMutex lock
-	go func() {
-		var sql_runtime_err = conn.readMSSQLVersion()
-		if sql_runtime_err != nil {
-			fmt.Println("Error checking database version:", sql_runtime_err)
-		}
-	}()
 
 	return dbproc, nil
 }
