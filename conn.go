@@ -103,6 +103,7 @@ type Conn struct {
 
 	credentials
 	freetdsVersionGte095 bool
+	mssqlVersion2005 bool
 }
 
 func (conn *Conn) addMessage(msg string, msgno int) {
@@ -235,6 +236,11 @@ func (conn *Conn) getDbProc() (*C.DBPROCESS, error) {
 		return nil, dbProcError("dbopen error")
 	}
 	conn.readFreeTdsVersion()
+	var sql_runtime_err = conn.readMSSQLVersion()
+	if sql_runtime_err != nil {
+		return nil, sql_runtime_err
+	}
+
 	return dbproc, nil
 }
 
@@ -242,6 +248,29 @@ func (conn *Conn) readFreeTdsVersion() {
 	dbVersion := C.GoString(C.dbversion())
 	freeTdsVersion := parseFreeTdsVersion(dbVersion)
 	conn.setFreetdsVersionGte095(freeTdsVersion)
+}
+
+func (conn *Conn) readMSSQLVersion() error {
+	var results, err = conn.ExecuteSql("SELECT @@VERSION")
+	if err != nil {
+		return err
+	}
+
+	var version_string string
+
+	if len(results) > 1 {
+		var result = results[0]
+		if result.Next() {
+			var err = result.Scan(&version_string)
+
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	conn.setMSSQLVersion(version_string)
+	return nil
 }
 
 func dbProcError(msg string) error {
@@ -464,6 +493,14 @@ func (conn *Conn) setFreetdsVersionGte095(freeTdsVersion []int) {
 			freeTdsVersion[0] == 0 && freeTdsVersion[1] >= 95 {
 			conn.freetdsVersionGte095 = true
 		}
+	}
+}
+
+func (conn *Conn) setMSSQLVersion(version string) {
+	conn.mssqlVersion2005 = false
+	version = strings.ToLower(version)
+	if version[0:25] == "microsoft sql server 2005" {
+		conn.mssqlVersion2005 = true
 	}
 }
 

@@ -13,29 +13,30 @@ const (
 )
 
 func TestGoTo2SqlDataType2(t *testing.T) {
-	var checker = func(value interface{}, sqlType string, sqlFormatedValue string) {
-		actualSqlType, actualSqlFormatedValue, err := go2SqlDataType(value)
+	var checker = func(sql_2005 bool, value interface{}, sqlType string, sqlFormatedValue string) {
+		actualSqlType, actualSqlFormatedValue, err := go2SqlDataType(sql_2005, value)
 		assert.Nil(t, err)
 		assert.Equal(t, actualSqlType, sqlType)
 		assert.Equal(t, actualSqlFormatedValue, sqlFormatedValue)
 	}
 
-	checker(123, "int", "123")
-	checker(int64(123), "bigint", "123")
-	checker(int16(123), "smallint", "123")
-	checker(int8(123), "tinyint", "123")
-	checker(123.23, "real", "123.23")
-	checker(float64(123.23), "real", "123.23")
+	checker(false, 123, "int", "123")
+	checker(false, int64(123), "bigint", "123")
+	checker(false, int16(123), "smallint", "123")
+	checker(false, int8(123), "tinyint", "123")
+	checker(false, 123.23, "real", "123.23")
+	checker(false, float64(123.23), "real", "123.23")
 
-	checker("iso medo", "nvarchar (8)", "'iso medo'")
-	checker("iso medo isn't", "nvarchar (14)", "'iso medo isn''t'")
+	checker(false, "iso medo", "nvarchar (8)", "'iso medo'")
+	checker(false, "iso medo isn't", "nvarchar (14)", "'iso medo isn''t'")
 
 	tm := time.Unix(1136239445, 0)
 	paris, _ := time.LoadLocation("Europe/Paris")
 
-	checker(tm.In(paris), "datetimeoffset", "'"+tm.In(paris).Format(sqlDateTimeOffSet)+"'")
+	checker(false, tm.In(paris), "datetimeoffset", "'"+tm.In(paris).Format(sqlDateTimeOffSet)+"'")
+	checker(true, tm.In(paris), "datetime", "'"+tm.In(paris).Format(sqlDateTimeOffSet)+"'")
 
-	checker([]byte{1, 2, 3, 4, 5, 6, 7, 8}, "varbinary (8)", "0x0102030405060708")
+	checker(false, []byte{1, 2, 3, 4, 5, 6, 7, 8}, "varbinary (8)", "0x0102030405060708")
 
 	//go2SqlDataType(t)
 }
@@ -59,33 +60,34 @@ func TestQuery2Statement(t *testing.T) {
 }
 
 func TestGoTo2SqlDataType(t *testing.T) {
-	var checker = func(value interface{}, sqlType string, sqlFormatedValue string) {
-		actualSqlType, actualSqlFormatedValue, err := go2SqlDataType(value)
+	var checker = func(sql_2005 bool, value interface{}, sqlType string, sqlFormatedValue string) {
+		actualSqlType, actualSqlFormatedValue, err := go2SqlDataType(sql_2005, value)
 		assert.Nil(t, err)
 		assert.Equal(t, actualSqlType, sqlType)
 		assert.Equal(t, actualSqlFormatedValue, sqlFormatedValue)
 	}
 
-	checker(123, "int", "123")
-	checker(int64(123), "bigint", "123")
-	checker(int8(123), "tinyint", "123")
-	checker(123.23, "real", "123.23")
-	checker(float64(123.23), "real", "123.23")
+	checker(false, 123, "int", "123")
+	checker(false, int64(123), "bigint", "123")
+	checker(false, int8(123), "tinyint", "123")
+	checker(false, 123.23, "real", "123.23")
+	checker(false, float64(123.23), "real", "123.23")
 
-	checker("iso medo", "nvarchar (8)", "'iso medo'")
-	checker("iso medo isn't", "nvarchar (14)", "'iso medo isn''t'")
+	checker(false, "iso medo", "nvarchar (8)", "'iso medo'")
+	checker(false, "iso medo isn't", "nvarchar (14)", "'iso medo isn''t'")
 
 	tm := time.Unix(1136239445, 0)
 	paris, _ := time.LoadLocation("Europe/Paris")
 
-	checker(tm.In(paris), "datetimeoffset", "'"+tm.In(paris).Format(sqlDateTimeOffSet)+"'")
+	checker(false, tm.In(paris), "datetimeoffset", "'"+tm.In(paris).Format(sqlDateTimeOffSet)+"'")
+	checker(true, tm.In(paris), "datetime", "'"+tm.In(paris).Format(sqlDateTimeOffSet)+"'")
 
-	checker([]byte{1, 2, 3, 4, 5, 6, 7, 8}, "varbinary (8)", "0x0102030405060708")
-	checker(make([]byte, 8001), "varbinary (MAX)", "0x" + strings.Repeat("00", 8001))
+	checker(false, []byte{1, 2, 3, 4, 5, 6, 7, 8}, "varbinary (8)", "0x0102030405060708")
+	checker(false, make([]byte, 8001), "varbinary (MAX)", "0x" + strings.Repeat("00", 8001))
 
-	checker("", "nvarchar (1)", "''")
-	checker(true, "bit", "1")
-	checker(false, "bit", "0")
+	checker(false, "", "nvarchar (1)", "''")
+	checker(false, true, "bit", "1")
+	checker(false, false, "bit", "0")
 }
 
 func TestExecuteSqlNumberOfParams(t *testing.T) {
@@ -96,7 +98,7 @@ func TestExecuteSqlNumberOfParams(t *testing.T) {
 }
 
 func TestParseParams(t *testing.T) {
-	def, val, err := parseParams(1, 2, "pero")
+	def, val, err := parseParams(false, 1, 2, "pero")
 	assert.Nil(t, err)
 	assert.Equal(t, def, "@p1 int, @p2 int, @p3 nvarchar (4)")
 	assert.Equal(t, val, "@p1=1, @p2=2, @p3='pero'")

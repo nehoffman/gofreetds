@@ -28,7 +28,7 @@ func (conn *Conn) ExecuteSql(query string, params ...driver.Value) ([]*Result, e
 	if numParams != len(params) {
 		return nil, fmt.Errorf("Incorrect number of params, expecting %d got %d", numParams, len(params))
 	}
-	paramDef, paramVal, err := parseParams(params...)
+	paramDef, paramVal, err := parseParams(conn.mssqlVersion2005, params...)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func (conn *Conn) executeSqlSybase125(query string, params ...driver.Value) ([]*
 	matches := re.FindAllSubmatchIndex([]byte(sql), -1)
 
 	for i, _ := range matches {
-		_, escapedValue, _ := go2SqlDataType(params[i])
+		_, escapedValue, _ := go2SqlDataType(conn.mssqlVersion2005, params[i])
 		sql = fmt.Sprintf("%s", strings.Replace(sql, "$bindkey", escapedValue, 1))
 	}
 
@@ -81,7 +81,7 @@ func query2Statement(query string) (string, int) {
 	return quote(statement), numParams
 }
 
-func parseParams(params ...driver.Value) (string, string, error) {
+func parseParams(sql_2005 bool, params ...driver.Value) (string, string, error) {
 	paramDef := ""
 	paramVal := ""
 	for i, param := range params {
@@ -89,7 +89,7 @@ func parseParams(params ...driver.Value) (string, string, error) {
 			paramVal += ", "
 			paramDef += ", "
 		}
-		sqlType, sqlValue, err := go2SqlDataType(param)
+		sqlType, sqlValue, err := go2SqlDataType(sql_2005, param)
 		if err != nil {
 			return "", "", err
 		}
@@ -104,7 +104,7 @@ func quote(in string) string {
 	return strings.Replace(in, "'", "''", -1)
 }
 
-func go2SqlDataType(value interface{}) (string, string, error) {
+func go2SqlDataType(sql_2005 bool, value interface{}) (string, string, error) {
 	max := func(a int, b int) int {
 		if a > b {
 			return a
@@ -136,6 +136,10 @@ func go2SqlDataType(value interface{}) (string, string, error) {
 	case time.Time:
 		{
 			strValue = t.Format(time.RFC3339Nano)
+			if sql_2005 {
+				return "datetime", fmt.Sprintf("'%s'", quote(strValue)), nil
+			}
+
 			return "datetimeoffset", fmt.Sprintf("'%s'", quote(strValue)), nil
 		}
 	case []byte:
