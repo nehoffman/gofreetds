@@ -236,10 +236,14 @@ func (conn *Conn) getDbProc() (*C.DBPROCESS, error) {
 		return nil, dbProcError("dbopen error")
 	}
 	conn.readFreeTdsVersion()
-	var sql_runtime_err = conn.readMSSQLVersion()
-	if sql_runtime_err != nil {
-		return nil, sql_runtime_err
-	}
+
+	//Calling asynchronously to work around the DbProcMutex lock
+	go func() {
+		var sql_runtime_err = conn.readMSSQLVersion()
+		if sql_runtime_err != nil {
+			fmt.Println("Error checking database version:", sql_runtime_err)
+		}
+	}()
 
 	return dbproc, nil
 }
